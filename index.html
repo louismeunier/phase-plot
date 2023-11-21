@@ -32,12 +32,17 @@
             <input type="range" min=".0001" max="1" value=".01" step=".0001" class="slider" id="tgrain" name="tgrain">
             <label id="tgrain-lab" for="tgrain">trajectory grain: .01</label>
         </div>
+        <div class="input-group">
+            <input type="range" min="50" max="10000" value="250" step="10" class="slider" id="tdist" name="tdist">
+            <label id="tdist-lab" for="tdist">trajectory distance: 250</label>
+        </div>
         <!-- <div class="horizontal-stretch">
             <button id="zoom-out">-</button>
             <button id="zoom-in">+</button>
         </div> -->
         <button id="rand-traj">gen. random trajectories</button>
         <button id="clear-traj">clear trajectories</button>
+        <i class="bottom">Based on <a href="https://gil-bub.lab.mcgill.ca/dev/flow2.html">this site</a></i>
     </div>
     <div class="side">
         <canvas id="phaseplot" width="1000" height="750"></canvas>
@@ -91,6 +96,11 @@
     
     .input-group {
         display: flex;
+    }
+
+    .bottom {
+        position: fixed;
+        bottom: 0;
     }
 </style>
 
@@ -214,6 +224,7 @@
     const ygrain_i = document.getElementById("ygrain")
     const tgrain_i = document.getElementById("tgrain")
     const options_i = document.getElementById("func")
+    const tdist_i = document.getElementById("tdist")
 
     clear()
     setup()        
@@ -234,10 +245,17 @@
     })
 
     let tgrain = 0.1;
+    let tdist = 250;
 
     tgrain_i.addEventListener("input", e => {
+        // clearTrajectories();
         tgrain = tgrain_i.value;
         document.getElementById("tgrain-lab").innerText="trajectory grain: " + tgrain_i.value
+    })
+    tdist_i.addEventListener("input", e => {
+        // clearTrajectories();
+        tdist = tdist_i.value;
+        document.getElementById("tdist-lab").innerText="trajectory distance: " + tdist_i.value
     })
 
     // snooze
