@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phase Plot</title>
+</head>
+<body>
+    <div class="left">
+        <!-- <select name="func" id="func"> -->
+            <!-- <option value="0" selected>(sin(y), sin(x))</option> -->
+            <!-- <option value="1">(y, 0.5 - sin(x))</option> -->
+            <!-- <option value="2">(4*x^3, -y)</option> -->
+            <!-- <option value="3">(y+1, -x+1)</option>  -->
+            <!-- <option value="4">(y-y^3, -x-y^2)</option>  -->
+        <!-- </select> -->
+        <!-- <label for="func">System</label> -->
+        <!-- <input type="range" min="0.1" max="10" step="0.1" value="1" class="slider" id="magnifier" name="mag"> -->
+        <!-- <label id="mag-lab" for="mag" >Scalar</label> -->
+        <!-- <input type="range" min="2" max="50" value="10" step="1" class="slider" id="xgrain" name="xgrain"> -->
+        <!-- <label id="xgrain-lab" for="xgrain">X grain: 1</label> -->
+        <!-- <input type="range" min="2" max="50" value="10" step="1" class="slider" id="ygrain" name="ygrain"> -->
+        <!-- <label id="ygrain-lab" for="xgrain">Y grain: 1</label> -->
+        <!-- <input type="range" min=".0001" max="1" value=".01" step=".0001" class="slider" id="tgrain" name="tgrain"> -->
+        <!-- <label id="tgrain-lab" for="tgrain">Trajectory grain: .01</label> -->
+    </div>
+    <div class="side">
+        <canvas id="phaseplot" width="600" height="500">
+    </div>
+  </canvas>
+</body>
+<style>
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0 auto;
+        display: flex;
+        /* flex-direction: row; */
+    }
+
+    .left {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 1;
+    }
+    .side {
+        flex-grow: 1;
+        display: grid;
+        place-items: center;
+    }
+
+    #phaseplot {
+        /* flex: 1; */
+        margin: 1em;
+        /* ! hacky */
+        /* transform: rotate(180deg); */
+    }
+</style>
+
+<script>
+    const canvas = document.getElementById("phaseplot")
+    const ctx = canvas.getContext("webgl")
+
+    // TODO: move all init here
+    const funcs = [
+        (x, y) => [Math.sin(y), Math.sin(x)],
+        (x, y) => [y, 0.5 - Math.sin(x)],
+        (x, y) => [4*x^3, -y],
+        (x, y) => [y+1, -x +1],
+        // (x, y) => [-x-Math.exp(-y), y-Math.exp(x)],
+    ]
+
+    let vectorfunc = funcs[0]
+
+    function setup() {
+        // draw axes
+        // x
+        ctx.lineWidth=1
+        ctx.strokeStyle="gray"
+        ctx.beginPath()
+        ctx.moveTo(0, canvas.height/2)
+        ctx.lineTo(canvas.width, canvas.height/2)
+        ctx.stroke()
+
+        // y
+        ctx.lineWidth=1
+        ctx.beginPath()
+        ctx.moveTo(canvas.width/2, 0)
+        ctx.lineTo(canvas.width/2, canvas.height)
+        ctx.stroke()
+    }
+
+    function clear() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function nullclines() {
+        // TODO: how the 
+
+    }
+    // TODO: option for color/normalized vector (how do I normalize??)
+
+
+    function linspace(min, max, num) {
+        let i = 1;
+        const space = [];
+        while (i <= num) {
+            space.push(min+i*Math.abs(max-min)/num);
+            i++;
+        }
+        return space;
+    }
+    function canvas_arrow(context, fromx, fromy, tox, toy) {
+            var headlen = 4; // length of head in pixels
+            var dx = tox - fromx;
+            var dy = toy - fromy;
+            var angle = Math.atan2(dy, dx);
+            context.moveTo(fromx, fromy);
+            context.lineTo(tox, toy);
+            context.lineTo(tox - headlen * Math.cos(angle - Math.PI / 6), toy - headlen * Math.sin(angle - Math.PI / 6));
+            context.moveTo(tox, toy);
+            context.lineTo(tox - headlen * Math.cos(angle + Math.PI / 6), toy - headlen * Math.sin(angle + Math.PI / 6));
+    }
+
+    function vectorfield(mag, xgrain, ygrain) {
+        // TODO: normalize scale, currently just using raw canvas width/height but thats a little psychotic
+        // TODO: options for finer x/y
+        // TODO: should be same number? perhaps?
+        generate_x = linspace(-canvas.width/100, canvas.width/100, xgrain);
+        generate_y = linspace(-canvas.height/100, canvas.height/100, ygrain);
+        console.log(generate_x)
+
+        coords = []
+        for (let i = 0; i < generate_x.length; i++) {
+            for (let j = 0; j < generate_y.length; j++) {
+                x = generate_x[i]
+                y = generate_y[j]
+                coords.push([
+                    [x, y],
+                    vectorfunc(x, y)
+                ])
+            }
+        }
+
+
+        // TODO: currently, "normalization" is just +half width/+half height for x/y resp, should change
+        // TODO: technically everything is flipped right now....... because canvas works "backwards" with dimensions for god knows why
+        for (let i = 0; i < coords.length; i++) {
+            x = coords[i][0][0]
+            y = coords[i][0][1]
+            // x = 50*(coords[i][0][0] + canvas.width/100);
+            // y = 50*(coords[i][0][1] + canvas.height/100);
+            xdot = coords[i][1][0];
+            ydot = coords[i][1][1];
+            const nx = (x + 0.2*xdot)
+            const ny = (y + 0.2*ydot)
+
+            const cx = 50*(x+canvas.width/100)
+            const cy = 50*(y+canvas.height/100)
+            const cnx = 50*(nx+canvas.width/100)
+            const cny = 50*(ny+canvas.height/100)
+
+            ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            canvas_arrow(ctx, cx, cy, cnx, cny);
+            ctx.stroke();
+        }
+
+    }
+
+    const input = document.getElementById("magnifier")
+    const xgrain_i = document.getElementById("xgrain")
+    const ygrain_i = document.getElementById("ygrain")
+    const tgrain_i = document.getElementById("tgrain")
+    const options_i = document.getElementById("func")
+
+    clear()
+    setup()        
+    vectorfield(input.value, xgrain_i.value, ygrain_i.value);
+
+
+    inputs = [input, xgrain_i, ygrain_i, options_i]
+    inputs.forEach(i=> {
+        i.addEventListener('input', function (evt) {
+            clear()
+            setup()
+            document.getElementById("xgrain-lab").innerText="X grain: " + xgrain_i.value
+            document.getElementById("ygrain-lab").innerText="Y grain: " + ygrain_i.value
+            document.getElementById("mag-lab").innerText="Scalar: " + input.value
+            vectorfunc = funcs[options_i.value]
+            vectorfield(input.value, xgrain_i.value, ygrain_i.value);
+        });
+    })
+
+    let tgrain = 0.01;
+
+    tgrain_i.addEventListener("input", e => {
+        tgrain = tgrain_i.value;
+        document.getElementById("tgrain-lab").innerText="Trajectory grain: " + tgrain_i.value
+    })
+
+    // snooze
+    async function sleep(t) {
+        return new Promise(r => setTimeout(r, t));
+    }
+
+    // draw trajectory
+    async function trajectory(xi, yi) {
+        let [x0,y0] = [xi,yi]
+        let [dx, dy] = vectorfunc(x0, y0);
+        console.log("Start: (x,y) = " + x0 + ", " + y0)
+        ctx.beginPath()
+        // ctx.moveTo(50*(x0+canvas.width/100), (50*(y0+canvas.width/100)))
+        ctx.lineWidth=0.75
+
+        let [xn, yn] = [0, 0]
+        ctx.strokeStyle = 'red'
+        for (let i = 0; i < 50/tgrain; i++) 
+        {
+            await sleep(0.01);
+            [dx, dy] = vectorfunc(x0, y0);
+           
+            [xn, yn] = [
+                x0+dx*tgrain,y0+dy*tgrain
+                // xn+dx*0.01, dy+yn*0.01
+            ];
+            // console.log(x0, y0, xn, yn)
+            // console.log("Time: " + i*tgrain + "s. (x,y) = (" + xn + ", " + yn +")")
+            // console.log(canvas.width)
+            // canvas_arrow(
+            //     canvas.getContext("2d"),
+            //     50*(x0+canvas.width/100),
+            //     50*(y0+canvas.height/100),
+            //     50*(xn+canvas.width/100),
+            //     50*(yn+canvas.height/100)
+            // )
+            ctx.moveTo(50*(x0+canvas.width/100), 50*(y0+canvas.height/100));
+            ctx.lineTo(50*(xn+canvas.width/100), 50*(yn+canvas.height/100));
+
+            x0 = xn;
+            y0 = yn;
+            ctx.stroke()         
+        }
+        canvas_arrow(
+                ctx,
+                50*(x0+canvas.width/100),
+                50*(y0+canvas.height/100),
+                50*(xn+canvas.width/100),
+                50*(yn+canvas.height/100)
+            )
+        console.log("End: (x,y) = " + xn + ", " + yn)
+        // ctx.stroke()
+        ctx.stroke()
+        // ctx.strokeStyle = 'green';
+        ctx.lineWidth=2
+        ctx.closePath()
+    }
+    function getPos(e) {
+        var rect=canvas.getBoundingClientRect();
+        Mx=e.clientX-rect.left;
+        My=e.clientY-rect.top;
+        return [Mx, My]
+    }
+    canvas.addEventListener("click", e => {
+        console.log("clicked")
+        console.log(canvas.width, canvas.height)
+        // ctx.strokeStyle='green'
+        // ctx.beginPath()
+        let[cx, cy] = getPos(e)
+        // ctx.moveTo(cx, cy)
+        // ctx.lineTo(cx + 10, cy + 10)
+        trajectory((cx - canvas.width/2)/50, (cy- canvas.height/2)/50)
+        // ctx.stroke()
+    })
+</script>
+</html>
