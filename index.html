@@ -14,6 +14,8 @@
             <option value="2">(4*x^3, -y)</option>
             <option value="3">(y+1, -x+1)</option> 
             <option value="4">(sin(x)*cos(y), cos(x)*sin(y))</option> 
+            <option value="5">(y, 2 - sin(x) - .5y)</option> 
+            <option value="6">(y, 0.5(1-x^2)y-x)</option>
             <!-- <option value="4">(y-y^3, -x-y^2)</option>  -->
         </select>
         <div class="input-group">
@@ -33,8 +35,12 @@
             <label id="tgrain-lab" for="tgrain">trajectory grain: .01</label>
         </div>
         <div class="input-group">
-            <input type="range" min="50" max="10000" value="250" step="10" class="slider" id="tdist" name="tdist">
+            <input type="range" min="50" max="10000" value="5000" step="10" class="slider" id="tdist" name="tdist">
             <label id="tdist-lab" for="tdist">trajectory distance: 250</label>
+        </div>
+        <div>
+            <input type="checkbox" id="tdelay" name="tdelay" checked>
+            <label for="tdelay">Draw trajectories in time</label>
         </div>
         <!-- <div class="horizontal-stretch">
             <button id="zoom-out">-</button>
@@ -110,13 +116,20 @@
     const traj_canvas = document.getElementById("trajectories")
     const traj_ctx = traj_canvas.getContext("2d");
 
+    let tgrain = 0.1;
+    let tdist = 5000;
+    let tdelay = true;
+
     // TODO: move all init here
     const funcs = [
         (x, y) => [Math.sin(y), Math.sin(x)],
         (x, y) => [y, 0.5 - Math.sin(x)],
         (x, y) => [4*x^3, -y],
         (x, y) => [y+1, -x +1],
-        (x, y) => [Math.sin(x)*Math.cos(y), Math.cos(x)*Math.sin(y)]
+        (x, y) => [Math.sin(x)*Math.cos(y), Math.cos(x)*Math.sin(y)],
+        (x, y) => [y, 1.1 - Math.sin(x) - 0.5*y],
+        (x, y) => [y, 0.1*(1-x^2)*y-x]
+
         // (x, y) => [-x-Math.exp(-y), y-Math.exp(x)],
     ]
 
@@ -145,8 +158,8 @@
     }
 
     function nullclines() {
-        // TODO: how the 
-
+        // TODO: If I really want this I'd probably have to manually find them for each
+        // TODO: same with steady states
     }
     // TODO: option for color/normalized vector (how do I normalize??)
 
@@ -212,6 +225,8 @@
 
             ctx.lineWidth = 1;
 
+            // const cnx_t = mag/Math.sqrt(cnx^2+cny^2)
+            // const cny_t = /Math.sqrt(cnx^2+cny^2)
             ctx.beginPath();
             canvas_arrow(ctx, cx, cy, cnx, cny);
             ctx.stroke();
@@ -225,6 +240,7 @@
     const tgrain_i = document.getElementById("tgrain")
     const options_i = document.getElementById("func")
     const tdist_i = document.getElementById("tdist")
+    const tdelay_i = document.querySelector("input[name=tdelay]");
 
     clear()
     setup()        
@@ -234,18 +250,17 @@
     inputs = [input, xgrain_i, ygrain_i, options_i]
     inputs.forEach(i=> {
         i.addEventListener('input', function (evt) {
-            clear()
-            setup()
+            clear();
+            clearTrajectories();
+            setup();
             document.getElementById("xgrain-lab").innerText="x grain: " + xgrain_i.value
             document.getElementById("ygrain-lab").innerText="y grain: " + ygrain_i.value
             document.getElementById("mag-lab").innerText="scalar: " + input.value
             vectorfunc = funcs[options_i.value]
+            // location.reload()
             vectorfield(input.value, xgrain_i.value, ygrain_i.value);
         });
     })
-
-    let tgrain = 0.1;
-    let tdist = 250;
 
     tgrain_i.addEventListener("input", e => {
         // clearTrajectories();
@@ -257,6 +272,10 @@
         tdist = tdist_i.value;
         document.getElementById("tdist-lab").innerText="trajectory distance: " + tdist_i.value
     })
+    
+    tdelay_i.addEventListener("change", function() {
+        tdelay = this.checked;
+    })
 
     // snooze
     async function sleep(t) {
@@ -264,7 +283,7 @@
     }
 
     // draw trajectory
-    async function trajectory(xi, yi) {
+    async function trajectory(xi, yi, accurate = false) {
         let [x0,y0] = [xi,yi]
         let [dx, dy] = vectorfunc(x0, y0);
         console.log("Start: (x,y) = " + x0 + ", " + y0)
@@ -274,14 +293,14 @@
 
         let [xn, yn] = [0, 0]
         traj_ctx.strokeStyle = 'red'
-        for (let i = 0; i < 5000; i++) 
+        for (let i = 0; i < tdist; i++) 
         {
-            await sleep(tgrain);
+            if (tdelay) await sleep(1.5);
+            // console.log(tdelay)
             [dx, dy] = vectorfunc(x0, y0);
            
             [xn, yn] = [
                 x0+dx*tgrain,y0+dy*tgrain
-                // xn+dx*0.01, dy+yn*0.01
             ];
             // console.log("Time: " + i*tgrain + "s. (x,y) = (" + xn + ", " + yn +")")
 
@@ -290,7 +309,8 @@
 
             x0 = xn;
             y0 = yn;
-            traj_ctx.stroke()         
+            traj_ctx.stroke()      
+            traj_ctx.closePath()   
         }
         canvas_arrow(
                traj_ctx,
